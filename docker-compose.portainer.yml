@@ -34,10 +34,9 @@ services:
     container_name: gwan-cache-commander-prod
     restart: unless-stopped
     environment:
-      - REDIS_HOSTS=local:redis:6379
+      - REDIS_HOSTS=local:redis:6379:0:${REDIS_PASSWORD:-pazdeDeus}
       - HTTP_USER=${REDIS_COMMANDER_USER:-admin}
       - HTTP_PASSWORD=${REDIS_COMMANDER_PASSWORD:-pazdeDeus}
-      - REDIS_PASSWORD=${REDIS_PASSWORD:-pazdeDeus}
     depends_on:
       - redis
     networks:

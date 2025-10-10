@@ -129,6 +129,13 @@ Os volumes serão criados automaticamente:
 3. Não há dashboard para evitar problemas de montagem
 4. Acesse diretamente o Redis Commander e Redis Insight
 
+### Problema: "Redis Commander não consegue conectar no Redis"
+**Solução:**
+1. Verifique se o container Redis está rodando
+2. Verifique se ambos estão na mesma rede
+3. Use o arquivo `docker-compose.portainer.yml` atualizado
+4. A configuração `REDIS_HOSTS` foi corrigida para incluir a senha
+
 ### Problema: SSL não funciona
 **Solução:**
 1. Verifique se o Traefik está rodando
