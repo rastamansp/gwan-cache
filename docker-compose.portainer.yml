@@ -85,4 +85,3 @@ volumes:
 networks:
   gwan:
     external: true
-    name: gwan

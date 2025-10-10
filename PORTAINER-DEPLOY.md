@@ -112,12 +112,15 @@ Os volumes serão criados automaticamente:
 
 ### Problema: "network gwan was found but has incorrect label"
 **Solução:**
-1. Remova a rede existente e recrie:
+1. **Opção 1 - Remover e recriar a rede:**
    ```bash
    docker network rm gwan
    docker network create gwan
    ```
-2. Ou use o arquivo `docker-compose.portainer.yml` que usa a rede externa `gwan`
+2. **Opção 2 - Usar rede existente sem labels:**
+   - Use o arquivo `docker-compose.portainer.yml` atualizado
+   - Ele não depende das labels do Docker Compose
+   - Funciona com qualquer rede `gwan` existente
 
 ### Problema: "error mounting config files"
 **Solução:**
