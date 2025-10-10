@@ -1,0 +1,100 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: gwan-cache-redis-prod
+    restart: unless-stopped
+    volumes:
+      - redis_data_prod:/data
+      - ./config/redis-prod.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-pazdeDeus}
+    networks:
+      - gwan
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "traefik.enable=false"
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: gwan-cache-commander-prod
+    restart: unless-stopped
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+      - HTTP_USER=${REDIS_COMMANDER_USER:-admin}
+      - HTTP_PASSWORD=${REDIS_COMMANDER_PASSWORD:-pazdeDeus}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-pazdeDeus}
+    depends_on:
+      - redis
+    networks:
+      - gwan
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=gwan"
+      - "traefik.http.routers.redis-commander.rule=Host(`cache.gwan.com.br`) && PathPrefix(`/commander`)"
+      - "traefik.http.routers.redis-commander.entrypoints=websecure"
+      - "traefik.http.routers.redis-commander.tls.certresolver=letsencrypt"
+      - "traefik.http.services.redis-commander.loadbalancer.server.port=8081"
+      - "traefik.http.middlewares.redis-commander-stripprefix.stripprefix.prefixes=/commander"
+      - "traefik.http.routers.redis-commander.middlewares=redis-commander-stripprefix"
+      - "traefik.http.middlewares.redis-commander-auth.basicauth.users=${REDIS_COMMANDER_AUTH:-admin:$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi}"
+      - "traefik.http.routers.redis-commander.middlewares=redis-commander-stripprefix,redis-commander-auth"
+
+  redis-insight:
+    image: redislabs/redisinsight:latest
+    container_name: gwan-cache-insight-prod
+    restart: unless-stopped
+    volumes:
+      - redis_insight_data_prod:/db
+    depends_on:
+      - redis
+    networks:
+      - gwan
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=gwan"
+      - "traefik.http.routers.redis-insight.rule=Host(`cache.gwan.com.br`) && PathPrefix(`/insight`)"
+      - "traefik.http.routers.redis-insight.entrypoints=websecure"
+      - "traefik.http.routers.redis-insight.tls.certresolver=letsencrypt"
+      - "traefik.http.services.redis-insight.loadbalancer.server.port=8001"
+      - "traefik.http.middlewares.redis-insight-stripprefix.stripprefix.prefixes=/insight"
+      - "traefik.http.routers.redis-insight.middlewares=redis-insight-stripprefix"
+      - "traefik.http.middlewares.redis-insight-auth.basicauth.users=${REDIS_INSIGHT_AUTH:-admin:$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi}"
+      - "traefik.http.routers.redis-insight.middlewares=redis-insight-stripprefix,redis-insight-auth"
+
+  # Dashboard de administração
+  cache-dashboard:
+    image: nginx:alpine
+    container_name: gwan-cache-dashboard-prod
+    restart: unless-stopped
+    volumes:
+      - ./config/nginx-dashboard.conf:/etc/nginx/nginx.conf:ro
+      - ./config/dashboard.html:/usr/share/nginx/html/index.html:ro
+    networks:
+      - gwan
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=gwan"
+      - "traefik.http.routers.cache-dashboard.rule=Host(`cache.gwan.com.br`)"
+      - "traefik.http.routers.cache-dashboard.entrypoints=websecure"
+      - "traefik.http.routers.cache-dashboard.tls.certresolver=letsencrypt"
+      - "traefik.http.services.cache-dashboard.loadbalancer.server.port=80"
+      - "traefik.http.middlewares.cache-dashboard-auth.basicauth.users=${DASHBOARD_AUTH:-admin:$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi}"
+      - "traefik.http.routers.cache-dashboard.middlewares=cache-dashboard-auth"
+
+volumes:
+  redis_data_prod:
+    driver: local
+  redis_insight_data_prod:
+    driver: local
+
+networks:
+  gwan-cache-network:
+    external: true
+    name: gwan

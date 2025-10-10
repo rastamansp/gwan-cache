@@ -1,0 +1,63 @@
+# Arquivos de ambiente
+.env
+.env.local
+.env.production
+.env.staging
+
+# Backups
+backups/
+*.rdb
+*.aof
+*.gz
+
+# Logs
+logs/
+*.log
+
+# Arquivos temporários
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Arquivos do IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Arquivos do Docker
+.docker/
+
+# Arquivos de configuração local
+docker-compose.override.yml
+docker-compose.local.yml
+
+# Arquivos de teste
+test-data/
+*.test
+
+# Arquivos de cache
+.cache/
+*.cache
+
+# Arquivos de segurança
+*.key
+*.pem
+*.crt
+*.p12
+
+# Arquivos de monitoramento
+monitoring/
+grafana-data/
+prometheus-data/
+
+# Arquivos de desenvolvimento
+dev-data/
+local-data/

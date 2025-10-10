@@ -1,0 +1,71 @@
+# Exemplo de configuração do Traefik para Gwan Cache
+# Este arquivo é apenas para referência - configure seu Traefik conforme necessário
+
+version: '3.8'
+
+services:
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik
+    restart: unless-stopped
+    command:
+      # API
+      - --api.dashboard=true
+      - --api.insecure=true
+      
+      # Providers
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=gwan
+      
+      # Entrypoints
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      
+      # Certificates
+      - --certificatesresolvers.letsencrypt.acme.tlschallenge=true
+      - --certificatesresolvers.letsencrypt.acme.email=admin@gwan.com.br
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      
+      # Logs
+      - --log.level=INFO
+      - --accesslog=true
+      
+      # Global redirect to https
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"  # Dashboard (apenas para desenvolvimento)
+    
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./letsencrypt:/letsencrypt
+      - ./traefik-logs:/var/log/traefik
+    
+    networks:
+      - gwan
+    
+    labels:
+      # Dashboard do Traefik
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.gwan.com.br`)"
+      - "traefik.http.routers.traefik.entrypoints=websecure"
+      - "traefik.http.routers.traefik.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.traefik.service=api@internal"
+      - "traefik.http.routers.traefik.middlewares=auth"
+      
+      # Autenticação básica para o dashboard
+      - "traefik.http.middlewares.auth.basicauth.users=admin:$$2y$$10$$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi"
+
+volumes:
+  letsencrypt:
+    driver: local
+  traefik-logs:
+    driver: local
+
+networks:
+  gwan:
+    external: true
