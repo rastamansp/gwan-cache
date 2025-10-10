@@ -23,10 +23,10 @@ Este guia mostra como fazer o deploy do **Gwan Cache** usando o **Portainer** co
 ```
 Stack name: gwan-cache-prod
 Repository URL: https://github.com/rastamansp/gwan-cache.git
-Compose file path: docker-compose.prod-portainer.yml
+Compose file path: docker-compose.portainer.yml
 ```
 
-**Nota**: Use `docker-compose.prod-portainer.yml` que é otimizado para o Portainer e não depende de arquivos externos.
+**Nota**: Use `docker-compose.portainer.yml` que é a versão mais simples e compatível com o Portainer.
 
 ### 3. Configurar Variáveis de Ambiente
 
@@ -109,9 +109,10 @@ Os volumes serão criados automaticamente:
 
 ### Problema: "error mounting config files"
 **Solução:**
-1. Use o arquivo `docker-compose.prod-portainer.yml` que não depende de arquivos externos
+1. Use o arquivo `docker-compose.portainer.yml` que não depende de arquivos externos
 2. Este arquivo tem todas as configurações embutidas no próprio docker-compose
-3. O dashboard é gerado dinamicamente sem necessidade de arquivos externos
+3. Não há dashboard para evitar problemas de montagem
+4. Acesse diretamente o Redis Commander e Redis Insight
 
 ### Problema: SSL não funciona
 **Solução:**
