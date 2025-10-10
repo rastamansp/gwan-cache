@@ -22,9 +22,11 @@ Este guia mostra como fazer o deploy do **Gwan Cache** usando o **Portainer** co
 ### 2. Configurar o Git
 ```
 Stack name: gwan-cache-prod
-Repository URL: https://github.com/seu-usuario/gwan-cache.git
-Compose file path: docker-compose.prod.yml
+Repository URL: https://github.com/rastamansp/gwan-cache.git
+Compose file path: docker-compose.prod-auto.yml
 ```
+
+**Nota**: Use `docker-compose.prod-auto.yml` se a rede `gwan` não existir ainda.
 
 ### 3. Configurar Variáveis de Ambiente
 
@@ -96,6 +98,15 @@ Os volumes serão criados automaticamente:
 1. Verifique os logs no Portainer
 2. Verifique se a rede `gwan` existe
 3. Verifique se as variáveis de ambiente estão corretas
+
+### Problema: "undefined network gwan"
+**Solução:**
+1. Use o arquivo `docker-compose.prod-auto.yml` que cria a rede automaticamente
+2. Ou crie a rede manualmente:
+   ```bash
+   docker network create gwan
+   ```
+3. Ou use o arquivo `docker-compose.prod.yml` se a rede já existir
 
 ### Problema: SSL não funciona
 **Solução:**

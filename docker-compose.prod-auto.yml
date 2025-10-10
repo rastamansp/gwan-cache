@@ -96,5 +96,5 @@ volumes:
 
 networks:
   gwan:
-    external: true
+    driver: bridge
     name: gwan
