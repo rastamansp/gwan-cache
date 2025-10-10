@@ -1,0 +1,168 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: gwan-cache-redis-prod
+    restart: unless-stopped
+    volumes:
+      - redis_data_prod:/data
+    command: >
+      redis-server 
+      --maxmemory 4gb 
+      --maxmemory-policy allkeys-lru 
+      --save 900 1 
+      --save 300 10 
+      --save 60 10000 
+      --appendonly yes 
+      --appendfsync everysec 
+      --requirepass ${REDIS_PASSWORD:-pazdeDeus}
+      --protected-mode yes
+      --rename-command FLUSHDB ""
+      --rename-command FLUSHALL ""
+      --rename-command CONFIG "CONFIG_9d4d2d8c8b2e4f1a"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-pazdeDeus}
+    networks:
+      - gwan
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "traefik.enable=false"
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: gwan-cache-commander-prod
+    restart: unless-stopped
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+      - HTTP_USER=${REDIS_COMMANDER_USER:-admin}
+      - HTTP_PASSWORD=${REDIS_COMMANDER_PASSWORD:-pazdeDeus}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-pazdeDeus}
+    depends_on:
+      - redis
+    networks:
+      - gwan
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=gwan"
+      - "traefik.http.routers.redis-commander.rule=Host(`cache.gwan.com.br`) && PathPrefix(`/commander`)"
+      - "traefik.http.routers.redis-commander.entrypoints=websecure"
+      - "traefik.http.routers.redis-commander.tls.certresolver=letsencrypt"
+      - "traefik.http.services.redis-commander.loadbalancer.server.port=8081"
+      - "traefik.http.middlewares.redis-commander-stripprefix.stripprefix.prefixes=/commander"
+      - "traefik.http.routers.redis-commander.middlewares=redis-commander-stripprefix"
+      - "traefik.http.middlewares.redis-commander-auth.basicauth.users=${REDIS_COMMANDER_AUTH:-admin:$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi}"
+      - "traefik.http.routers.redis-commander.middlewares=redis-commander-stripprefix,redis-commander-auth"
+
+  redis-insight:
+    image: redislabs/redisinsight:latest
+    container_name: gwan-cache-insight-prod
+    restart: unless-stopped
+    volumes:
+      - redis_insight_data_prod:/db
+    depends_on:
+      - redis
+    networks:
+      - gwan
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=gwan"
+      - "traefik.http.routers.redis-insight.rule=Host(`cache.gwan.com.br`) && PathPrefix(`/insight`)"
+      - "traefik.http.routers.redis-insight.entrypoints=websecure"
+      - "traefik.http.routers.redis-insight.tls.certresolver=letsencrypt"
+      - "traefik.http.services.redis-insight.loadbalancer.server.port=8001"
+      - "traefik.http.middlewares.redis-insight-stripprefix.stripprefix.prefixes=/insight"
+      - "traefik.http.routers.redis-insight.middlewares=redis-insight-stripprefix"
+      - "traefik.http.middlewares.redis-insight-auth.basicauth.users=${REDIS_INSIGHT_AUTH:-admin:$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi}"
+      - "traefik.http.routers.redis-insight.middlewares=redis-insight-stripprefix,redis-insight-auth"
+
+  # Dashboard de administração - versão simplificada
+  cache-dashboard:
+    image: nginx:alpine
+    container_name: gwan-cache-dashboard-prod
+    restart: unless-stopped
+    command: >
+      sh -c "
+      echo '<!DOCTYPE html>
+      <html lang=\"pt-BR\">
+      <head>
+          <meta charset=\"UTF-8\">
+          <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+          <title>Gwan Cache - Administração</title>
+          <style>
+              * { margin: 0; padding: 0; box-sizing: border-box; }
+              body { font-family: \"Segoe UI\", Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+              .container { background: white; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); padding: 40px; max-width: 800px; width: 90%; }
+              .header { text-align: center; margin-bottom: 40px; }
+              .header h1 { color: #333; font-size: 2.5em; margin-bottom: 10px; }
+              .header p { color: #666; font-size: 1.2em; }
+              .services { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 40px; }
+              .service-card { background: #f8f9fa; border-radius: 15px; padding: 25px; text-align: center; transition: transform 0.3s ease, box-shadow 0.3s ease; border: 2px solid transparent; }
+              .service-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-color: #667eea; }
+              .service-card h3 { color: #333; margin-bottom: 15px; font-size: 1.3em; }
+              .service-card p { color: #666; margin-bottom: 20px; line-height: 1.5; }
+              .service-card .btn { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; padding: 12px 25px; border-radius: 25px; font-weight: 600; transition: all 0.3s ease; }
+              .service-card .btn:hover { transform: scale(1.05); box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4); }
+              .status { background: #e8f5e8; border: 1px solid #4caf50; border-radius: 10px; padding: 20px; text-align: center; }
+              .status h3 { color: #2e7d32; margin-bottom: 10px; }
+              .status p { color: #388e3c; font-weight: 500; }
+              .footer { text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; color: #666; }
+          </style>
+      </head>
+      <body>
+          <div class=\"container\">
+              <div class=\"header\">
+                  <h1>🚀 Gwan Cache</h1>
+                  <p>Sistema de Administração de Cache Redis</p>
+              </div>
+              <div class=\"services\">
+                  <div class=\"service-card\">
+                      <h3>📊 Redis Commander</h3>
+                      <p>Interface web simples para administração do Redis. Visualize keys, execute comandos e monitore em tempo real.</p>
+                      <a href=\"/commander\" class=\"btn\">Acessar Commander</a>
+                  </div>
+                  <div class=\"service-card\">
+                      <h3>🔍 Redis Insight</h3>
+                      <p>Ferramenta avançada de análise e monitoramento. Relatórios detalhados, profiling e visualização de dados.</p>
+                      <a href=\"/insight\" class=\"btn\">Acessar Insight</a>
+                  </div>
+              </div>
+              <div class=\"status\">
+                  <h3>✅ Sistema Operacional</h3>
+                  <p>Cache Redis funcionando normalmente em produção</p>
+              </div>
+              <div class=\"footer\">
+                  <p>Gwan Cache Administration - Versão 1.0</p>
+                  <p>Cache Redis | Traefik | Docker</p>
+              </div>
+          </div>
+      </body>
+      </html>' > /usr/share/nginx/html/index.html &&
+      nginx -g 'daemon off;'
+      "
+    networks:
+      - gwan
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=gwan"
+      - "traefik.http.routers.cache-dashboard.rule=Host(`cache.gwan.com.br`)"
+      - "traefik.http.routers.cache-dashboard.entrypoints=websecure"
+      - "traefik.http.routers.cache-dashboard.tls.certresolver=letsencrypt"
+      - "traefik.http.services.cache-dashboard.loadbalancer.server.port=80"
+      - "traefik.http.middlewares.cache-dashboard-auth.basicauth.users=${DASHBOARD_AUTH:-admin:$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi}"
+      - "traefik.http.routers.cache-dashboard.middlewares=cache-dashboard-auth"
+
+volumes:
+  redis_data_prod:
+    driver: local
+  redis_insight_data_prod:
+    driver: local
+
+networks:
+  gwan:
+    driver: bridge
+    name: gwan
