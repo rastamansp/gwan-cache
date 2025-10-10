@@ -101,11 +101,23 @@ Os volumes serão criados automaticamente:
 
 ### Problema: "undefined network gwan"
 **Solução:**
-1. Use o arquivo `docker-compose.prod-portainer.yml` que cria a rede automaticamente
-2. Ou crie a rede manualmente:
+1. Certifique-se de que a rede `gwan` existe:
+   ```bash
+   docker network ls | grep gwan
+   ```
+2. Se não existir, crie a rede:
    ```bash
    docker network create gwan
    ```
+
+### Problema: "network gwan was found but has incorrect label"
+**Solução:**
+1. Remova a rede existente e recrie:
+   ```bash
+   docker network rm gwan
+   docker network create gwan
+   ```
+2. Ou use o arquivo `docker-compose.portainer.yml` que usa a rede externa `gwan`
 
 ### Problema: "error mounting config files"
 **Solução:**
