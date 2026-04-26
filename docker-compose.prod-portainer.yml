@@ -49,12 +49,11 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=gwan"
-      - "traefik.http.routers.redis-commander.rule=Host(`cache.gwan.com.br`) && PathPrefix(`/commander`)"
+      - "traefik.http.routers.redis-commander.rule=Host(`cache.gwan.cloud`) && PathPrefix(`/commander`)"
       - "traefik.http.routers.redis-commander.entrypoints=websecure"
       - "traefik.http.routers.redis-commander.tls.certresolver=letsencrypt"
       - "traefik.http.services.redis-commander.loadbalancer.server.port=8081"
       - "traefik.http.middlewares.redis-commander-stripprefix.stripprefix.prefixes=/commander"
-      - "traefik.http.routers.redis-commander.middlewares=redis-commander-stripprefix"
       - "traefik.http.middlewares.redis-commander-auth.basicauth.users=${REDIS_COMMANDER_AUTH:-admin:$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi}"
       - "traefik.http.routers.redis-commander.middlewares=redis-commander-stripprefix,redis-commander-auth"
 
@@ -71,12 +70,11 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=gwan"
-      - "traefik.http.routers.redis-insight.rule=Host(`cache.gwan.com.br`) && PathPrefix(`/insight`)"
+      - "traefik.http.routers.redis-insight.rule=Host(`cache.gwan.cloud`) && PathPrefix(`/insight`)"
       - "traefik.http.routers.redis-insight.entrypoints=websecure"
       - "traefik.http.routers.redis-insight.tls.certresolver=letsencrypt"
       - "traefik.http.services.redis-insight.loadbalancer.server.port=8001"
       - "traefik.http.middlewares.redis-insight-stripprefix.stripprefix.prefixes=/insight"
-      - "traefik.http.routers.redis-insight.middlewares=redis-insight-stripprefix"
       - "traefik.http.middlewares.redis-insight-auth.basicauth.users=${REDIS_INSIGHT_AUTH:-admin:$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi}"
       - "traefik.http.routers.redis-insight.middlewares=redis-insight-stripprefix,redis-insight-auth"
 
@@ -149,7 +147,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=gwan"
-      - "traefik.http.routers.cache-dashboard.rule=Host(`cache.gwan.com.br`)"
+      - "traefik.http.routers.cache-dashboard.rule=Host(`cache.gwan.cloud`)"
       - "traefik.http.routers.cache-dashboard.entrypoints=websecure"
       - "traefik.http.routers.cache-dashboard.tls.certresolver=letsencrypt"
       - "traefik.http.services.cache-dashboard.loadbalancer.server.port=80"
@@ -164,5 +162,5 @@ volumes:
 
 networks:
   gwan:
-    driver: bridge
+    external: true
     name: gwan
