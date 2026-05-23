@@ -12,7 +12,7 @@ services:
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD:-pazdeDeus}
     networks:
-      - gwan
+      - gwan-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 30s
@@ -37,10 +37,10 @@ services:
     depends_on:
       - redis
     networks:
-      - gwan
+      - gwan-network
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=gwan"
+      - "traefik.docker.network=gwan-network"
       - "traefik.http.routers.redis-commander.rule=Host(`cache.gwan.com.br`) && PathPrefix(`/commander`)"
       - "traefik.http.routers.redis-commander.entrypoints=websecure"
       - "traefik.http.routers.redis-commander.tls.certresolver=letsencrypt"
@@ -59,10 +59,10 @@ services:
     depends_on:
       - redis
     networks:
-      - gwan
+      - gwan-network
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=gwan"
+      - "traefik.docker.network=gwan-network"
       - "traefik.http.routers.redis-insight.rule=Host(`cache.gwan.com.br`) && PathPrefix(`/insight`)"
       - "traefik.http.routers.redis-insight.entrypoints=websecure"
       - "traefik.http.routers.redis-insight.tls.certresolver=letsencrypt"
@@ -81,10 +81,10 @@ services:
       - ./config/nginx-dashboard.conf:/etc/nginx/nginx.conf:ro
       - ./config/dashboard.html:/usr/share/nginx/html/index.html:ro
     networks:
-      - gwan
+      - gwan-network
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=gwan"
+      - "traefik.docker.network=gwan-network"
       - "traefik.http.routers.cache-dashboard.rule=Host(`cache.gwan.com.br`)"
       - "traefik.http.routers.cache-dashboard.entrypoints=websecure"
       - "traefik.http.routers.cache-dashboard.tls.certresolver=letsencrypt"
@@ -99,6 +99,6 @@ volumes:
     driver: local
 
 networks:
-  gwan:
+  gwan-network:
     external: true
-    name: gwan
+    name: gwan-network
