@@ -26,10 +26,14 @@ services:
     container_name: gwan-cache-commander-prod
     restart: unless-stopped
     environment:
-      - REDIS_HOSTS=local:redis:6379
+      # NOTA: a senha precisa estar EMBUTIDA em REDIS_HOSTS (formato
+      # label:host:port:db:password) — o env REDIS_PASSWORD separado e
+      # ignorado pelo rediscommander quando REDIS_HOSTS esta definido.
+      # Sintoma observado em 2026-05-22: 208+ restarts, log "NOAUTH
+      # Authentication required" no boot.
+      - REDIS_HOSTS=local:redis:6379:0:${REDIS_PASSWORD:-pazdeDeus}
       - HTTP_USER=${REDIS_COMMANDER_USER:-admin}
       - HTTP_PASSWORD=${REDIS_COMMANDER_PASSWORD:-pazdeDeus}
-      - REDIS_PASSWORD=${REDIS_PASSWORD:-pazdeDeus}
     depends_on:
       - redis
     networks:
